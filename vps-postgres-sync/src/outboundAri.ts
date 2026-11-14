@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
-import { pool, withTransaction, logSyncEvent } from './db.ts';
-import { decryptSecret } from './crypto.ts';
-import { mchannelRequest } from './mchannel.ts';
+import { pool, withTransaction, logSyncEvent } from './db.js';
+import { decryptSecret } from './crypto.js';
+import { mchannelRequest } from './mchannel.js';
 
 export async function enqueueDirtyInventory(propertyFilter?: string) {
   const propsRes = await pool.query<{

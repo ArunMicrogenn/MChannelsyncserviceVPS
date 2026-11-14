@@ -134,7 +134,8 @@ export const OverviewChecklistView: React.FC<OverviewChecklistViewProps> = ({
         lines.push(f.content);
         lines.push(marker);
       }
-      lines.push('echo "Extracted vps-postgres-sync. Next: cp .env.example .env && npm install && npm run migrate"');
+      lines.push('chmod +x install_vps.sh');
+      lines.push('echo "Extracted vps-postgres-sync. Run on VPS: bash install_vps.sh"');
       const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

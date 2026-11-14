@@ -293,9 +293,11 @@ async function startServer() {
       const bundleDir = path.resolve(__dirname, 'vps-postgres-sync');
       const relativeFiles = [
         'README.md',
+        'install_vps.sh',
         'package.json',
         'tsconfig.json',
         '.env.example',
+        'sql/000_create_database.sql',
         'sql/001_schema.sql',
         'src/index.ts',
         'src/inboundBookings.ts',

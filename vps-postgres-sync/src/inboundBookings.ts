@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
-import { pool, withTransaction, logSyncEvent } from './db.ts';
-import { decryptSecret, verifyWebhookSignature } from './crypto.ts';
-import { mchannelRequest } from './mchannel.ts';
+import { pool, withTransaction, logSyncEvent } from './db.js';
+import { decryptSecret, verifyWebhookSignature } from './crypto.js';
+import { mchannelRequest } from './mchannel.js';
 
 function expandStayNights(checkin: string, checkout: string): string[] {
   const nights: string[] = [];

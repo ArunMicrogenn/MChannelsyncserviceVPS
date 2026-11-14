@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import { pool, withTransaction, logSyncEvent } from './db.ts';
-import { encryptSecret } from './crypto.ts';
-import { mchannelRequest } from './mchannel.ts';
-import { pushFull365DaysForProperty } from './outboundAri.ts';
+import { pool, withTransaction, logSyncEvent } from './db.js';
+import { encryptSecret } from './crypto.js';
+import { mchannelRequest } from './mchannel.js';
+import { pushFull365DaysForProperty } from './outboundAri.js';
 
 function getArg(name: string, fallback?: string): string {
   const idx = process.argv.indexOf(`--${name}`);

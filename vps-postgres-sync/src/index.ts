@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import { Client } from 'pg';
-import { pool } from './db.ts';
-import { handleWebhookRequest, pollMissedBookings } from './inboundBookings.ts';
-import { enqueueDirtyInventory, flushAriOutbox } from './outboundAri.ts';
+import { pool } from './db.js';
+import { handleWebhookRequest, pollMissedBookings } from './inboundBookings.js';
+import { enqueueDirtyInventory, flushAriOutbox } from './outboundAri.js';
 
 const PORT = Number(process.env.PORT || 4000);
 const OUTBOX_INTERVAL_MS = Number(process.env.OUTBOX_INTERVAL_MS || 5000);

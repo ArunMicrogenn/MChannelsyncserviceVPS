@@ -13,19 +13,39 @@ Standalone bidirectional synchronization daemon implementing **M-Channel PMS Int
    - The daemon wakes up immediately via `LISTEN`, batches dirty rows into `ari_outbox` with a unique `idempotency_key`, enforces Section 6.3 (`ari_source`, `rate_source`, `rate_mode`), and pushes `POST /api/v1/properties/:id/ari`.
    - Retries `0` / `429` / `500` / `502` using the exact same `idempotency_key`; refuses `409` / `422` without retry.
 
-## Quick VPS Setup
+## Option A: One-Command Automated VPS Install (Ubuntu / Debian)
 
 ```bash
 cd vps-postgres-sync
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials, MCHANNEL_ENCRYPTION_KEY, and public HTTPS domain
+WEBHOOK_PUBLIC_URL=https://sync.yourhotelpms.com bash install_vps.sh
+```
 
+This script installs PostgreSQL (if missing), creates the `mchannel_sync` role & `mchannel_pms_sync` database, generates `.env` with a fresh 32-byte `MCHANNEL_ENCRYPTION_KEY`, runs `npm install`, applies `sql/001_schema.sql`, and compiles `dist/index.js`.
+
+## Option B: Manual PostgreSQL & Service Setup
+
+```bash
+# 1. Install PostgreSQL & create role + database
+sudo apt-get update && sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
+sudo -u postgres psql -f sql/000_create_database.sql
+
+# 2. Configure environment
+cd vps-postgres-sync
+cp .env.example .env
+# Edit .env: set PGPASSWORD, WEBHOOK_PUBLIC_URL, and generate 64-char MCHANNEL_ENCRYPTION_KEY:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 3. Install dependencies, create 8 tables + NOTIFY trigger, pair hotel & build
 npm install
 npm run migrate
 npm run pair -- --code MCH-7F3K-92QD --env staging --hotel-id H001 --hotel-name "Hotel Example"
 npm run build
 
-# Run with PM2 (or install mchannel-sync.service in /etc/systemd/system/)
+# 4. Run 24/7 with PM2 (or systemd)
 pm2 start ecosystem.config.cjs
 pm2 save
+# Or systemd:
+sudo cp mchannel-sync.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now mchannel-sync
 ```

@@ -59,7 +59,8 @@ export const LogsPostgresView: React.FC<LogsPostgresViewProps> = ({ snapshot }) 
       lines.push(f.content);
       lines.push(marker);
     }
-    lines.push('echo "Files extracted into $(pwd). Next: cp .env.example .env && npm install && npm run migrate"');
+    lines.push('chmod +x install_vps.sh');
+    lines.push('echo "Files extracted into $(pwd). Run on VPS: bash install_vps.sh"');
     handleDownloadFile('setup_mchannel_vps_sync.sh', lines.join('\n'));
   };
 
