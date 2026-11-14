@@ -1,0 +1,481 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(ownerUid) {
+      return isSignedIn() && request.auth.uid == ownerUid;
+    }
+
+    function parentProperty(propertyId) {
+      return get(/databases/$(database)/documents/properties/$(propertyId)).data;
+    }
+
+    function isPropertyOwner(propertyId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/properties/$(propertyId))
+        && parentProperty(propertyId).ownerUid == request.auth.uid;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'createdAt'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid.size() <= 128
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 320
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidProperty(data) {
+      return data.keys().hasAll([
+          'ownerUid', 'propertyId', 'pmsHotelId', 'name', 'environment',
+          'baseUrl', 'status', 'ariSource', 'rateSource', 'currency',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid', 'propertyId', 'pmsHotelId', 'name', 'code', 'environment',
+          'baseUrl', 'webhookUrl', 'status', 'ariSource', 'rateSource', 'currency',
+          'timezone', 'hasCredentials', 'activeChannels', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && isValidId(data.propertyId)
+        && data.pmsHotelId is string && data.pmsHotelId.size() >= 1 && data.pmsHotelId.size() <= 100
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && (!('code' in data) || (data.code is string && data.code.size() <= 32))
+        && data.environment in ['staging', 'production', 'simulator']
+        && data.baseUrl is string && data.baseUrl.size() >= 8 && data.baseUrl.size() <= 255
+        && (!('webhookUrl' in data) || (data.webhookUrl is string && data.webhookUrl.size() <= 500))
+        && data.status in ['draft', 'syncing', 'live', 'paused']
+        && data.ariSource in ['pms', 'mchannel']
+        && data.rateSource in ['pms', 'mchannel']
+        && data.currency is string && data.currency.size() == 3
+        && (!('timezone' in data) || (data.timezone is string && data.timezone.size() <= 64))
+        && (!('hasCredentials' in data) || data.hasCredentials is bool)
+        && (!('activeChannels' in data) || (data.activeChannels is list && data.activeChannels.size() <= 25))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSecret(data) {
+      return data.keys().hasAll(['ownerUid', 'encryptedApiKey', 'encryptedWebhookSecret', 'updatedAt'])
+        && data.keys().hasOnly(['ownerUid', 'encryptedApiKey', 'encryptedWebhookSecret', 'updatedAt'])
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.encryptedApiKey is string && data.encryptedApiKey.size() >= 16 && data.encryptedApiKey.size() <= 2048
+        && data.encryptedWebhookSecret is string && data.encryptedWebhookSecret.size() >= 16 && data.encryptedWebhookSecret.size() <= 2048
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMapping(data, propertyId) {
+      return data.keys().hasAll(['id', 'ownerUid', 'propertyId', 'pmsRoomTypeRef', 'roomTypeId', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'pmsRoomTypeRef', 'pmsRatePlanRef', 'roomTypeId',
+          'ratePlanId', 'roomTypeName', 'ratePlanName', 'sellMode', 'rateMode',
+          'countOfRooms', 'updatedAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.pmsRoomTypeRef is string && data.pmsRoomTypeRef.size() >= 1 && data.pmsRoomTypeRef.size() <= 100
+        && (!('pmsRatePlanRef' in data) || data.pmsRatePlanRef == null || (data.pmsRatePlanRef is string && data.pmsRatePlanRef.size() <= 100))
+        && data.roomTypeId is string && data.roomTypeId.size() >= 1 && data.roomTypeId.size() <= 128
+        && (!('ratePlanId' in data) || data.ratePlanId == null || (data.ratePlanId is string && data.ratePlanId.size() <= 128))
+        && (!('roomTypeName' in data) || (data.roomTypeName is string && data.roomTypeName.size() <= 160))
+        && (!('ratePlanName' in data) || (data.ratePlanName is string && data.ratePlanName.size() <= 160))
+        && (!('sellMode' in data) || data.sellMode in ['per_room', 'per_person'])
+        && (!('rateMode' in data) || data.rateMode in ['manual', 'derived', 'cascade', 'auto'])
+        && (!('countOfRooms' in data) || (data.countOfRooms is int && data.countOfRooms >= 0 && data.countOfRooms <= 5000))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidInventoryDay(data, propertyId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'propertyId', 'pmsRoomTypeRef', 'roomTypeId',
+          'date', 'totalRooms', 'bookedRooms', 'freeRooms', 'rate', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'pmsRoomTypeRef', 'roomTypeId', 'ratePlanId',
+          'date', 'totalRooms', 'bookedRooms', 'freeRooms', 'rate',
+          'minStayArrival', 'maxStay', 'closedToArrival', 'closedToDeparture', 'stopSell', 'updatedAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.pmsRoomTypeRef is string && data.pmsRoomTypeRef.size() >= 1 && data.pmsRoomTypeRef.size() <= 100
+        && data.roomTypeId is string && data.roomTypeId.size() >= 1 && data.roomTypeId.size() <= 128
+        && (!('ratePlanId' in data) || data.ratePlanId == null || (data.ratePlanId is string && data.ratePlanId.size() <= 128))
+        && data.date is string && data.date.size() == 10
+        && data.totalRooms is int && data.totalRooms >= 0 && data.totalRooms <= 5000
+        && data.bookedRooms is int && data.bookedRooms >= 0 && data.bookedRooms <= 5000
+        && data.freeRooms is int && data.freeRooms >= 0 && data.freeRooms <= 5000
+        && data.rate is string && data.rate.size() <= 20
+        && (!('minStayArrival' in data) || data.minStayArrival == null || data.minStayArrival is int)
+        && (!('maxStay' in data) || data.maxStay == null || data.maxStay is int)
+        && (!('closedToArrival' in data) || data.closedToArrival is bool)
+        && (!('closedToDeparture' in data) || data.closedToDeparture is bool)
+        && (!('stopSell' in data) || data.stopSell is bool)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOutbox(data, propertyId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'propertyId', 'idempotencyKey', 'syncType',
+          'status', 'httpStatus', 'attempts', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'idempotencyKey', 'syncType',
+          'status', 'httpStatus', 'batchId', 'acceptedItems', 'attempts',
+          'nextRetryAt', 'lastError', 'availabilityCount', 'restrictionsCount',
+          'payloadJson', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.idempotencyKey is string && data.idempotencyKey.size() >= 8 && data.idempotencyKey.size() <= 100
+        && data.syncType in ['delta', 'full']
+        && data.status in ['queued', 'accepted', 'retry_scheduled', 'refused']
+        && data.httpStatus is int
+        && (!('batchId' in data) || data.batchId == null || (data.batchId is string && data.batchId.size() <= 128))
+        && (!('acceptedItems' in data) || data.acceptedItems is int)
+        && data.attempts is int && data.attempts >= 1
+        && (!('nextRetryAt' in data) || data.nextRetryAt == null || (data.nextRetryAt is string && data.nextRetryAt.size() <= 64))
+        && (!('lastError' in data) || data.lastError == null || (data.lastError is string && data.lastError.size() <= 500))
+        && (!('availabilityCount' in data) || data.availabilityCount is int)
+        && (!('restrictionsCount' in data) || data.restrictionsCount is int)
+        && (!('payloadJson' in data) || (data.payloadJson is string && data.payloadJson.size() <= 65536))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data, propertyId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'propertyId', 'bookingId', 'revisionId', 'revisionSeq',
+          'status', 'arrivalDate', 'departureDate', 'ackResult', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'bookingId', 'revisionId', 'revisionSeq',
+          'status', 'otaCode', 'otaName', 'secondaryOtaName', 'otaReservationCode',
+          'uniqueId', 'arrivalDate', 'departureDate', 'arrivalTime', 'guestName',
+          'guestEmail', 'occupancyAdults', 'occupancyChildren', 'amount', 'currency',
+          'otaCommission', 'pmsRoomTypeRef', 'pmsRatePlanRef', 'isUnmapped',
+          'ackResult', 'ackFailureReason', 'pmsBookingId', 'pmsBookingNo',
+          'ackedAt', 'notes', 'paymentCollect', 'updatedAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.bookingId is string && data.bookingId.size() >= 1 && data.bookingId.size() <= 128
+        && data.revisionId is string && data.revisionId.size() >= 1 && data.revisionId.size() <= 128
+        && data.revisionSeq is int && data.revisionSeq >= 1
+        && data.status in ['new', 'modified', 'cancelled']
+        && (!('otaCode' in data) || (data.otaCode is string && data.otaCode.size() <= 32))
+        && (!('otaName' in data) || (data.otaName is string && data.otaName.size() <= 120))
+        && (!('secondaryOtaName' in data) || data.secondaryOtaName == null || (data.secondaryOtaName is string && data.secondaryOtaName.size() <= 120))
+        && (!('otaReservationCode' in data) || (data.otaReservationCode is string && data.otaReservationCode.size() <= 120))
+        && (!('uniqueId' in data) || (data.uniqueId is string && data.uniqueId.size() <= 120))
+        && data.arrivalDate is string && data.arrivalDate.size() == 10
+        && data.departureDate is string && data.departureDate.size() == 10
+        && (!('arrivalTime' in data) || data.arrivalTime == null || (data.arrivalTime is string && data.arrivalTime.size() <= 16))
+        && (!('guestName' in data) || (data.guestName is string && data.guestName.size() <= 160))
+        && (!('guestEmail' in data) || data.guestEmail == null || (data.guestEmail is string && data.guestEmail.size() <= 255))
+        && (!('occupancyAdults' in data) || data.occupancyAdults is int)
+        && (!('occupancyChildren' in data) || data.occupancyChildren is int)
+        && (!('amount' in data) || (data.amount is string && data.amount.size() <= 20))
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 8))
+        && (!('otaCommission' in data) || data.otaCommission == null || (data.otaCommission is string && data.otaCommission.size() <= 20))
+        && (!('pmsRoomTypeRef' in data) || data.pmsRoomTypeRef == null || (data.pmsRoomTypeRef is string && data.pmsRoomTypeRef.size() <= 100))
+        && (!('pmsRatePlanRef' in data) || data.pmsRatePlanRef == null || (data.pmsRatePlanRef is string && data.pmsRatePlanRef.size() <= 100))
+        && (!('isUnmapped' in data) || data.isUnmapped is bool)
+        && data.ackResult in ['pending', 'imported', 'updated', 'cancelled', 'failed']
+        && (!('ackFailureReason' in data) || data.ackFailureReason == null || (data.ackFailureReason is string && data.ackFailureReason.size() <= 500))
+        && (!('pmsBookingId' in data) || data.pmsBookingId == null || (data.pmsBookingId is string && data.pmsBookingId.size() <= 100))
+        && (!('pmsBookingNo' in data) || data.pmsBookingNo == null || (data.pmsBookingNo is string && data.pmsBookingNo.size() <= 100))
+        && (!('ackedAt' in data) || data.ackedAt == null || (data.ackedAt is string && data.ackedAt.size() <= 64))
+        && (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 1000))
+        && (!('paymentCollect' in data) || data.paymentCollect == null || (data.paymentCollect is string && data.paymentCollect.size() <= 32))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWebhookEvent(data, propertyId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'propertyId', 'eventId', 'eventType',
+          'signatureValid', 'httpStatus', 'processedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'eventId', 'eventType',
+          'signatureValid', 'httpStatus', 'timestampSkewSeconds', 'deduplicated',
+          'summary', 'processedAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.eventId is string && data.eventId.size() >= 1 && data.eventId.size() <= 128
+        && data.eventType is string && data.eventType.size() >= 1 && data.eventType.size() <= 64
+        && data.signatureValid is bool
+        && data.httpStatus is int
+        && (!('timestampSkewSeconds' in data) || data.timestampSkewSeconds is int)
+        && (!('deduplicated' in data) || data.deduplicated is bool)
+        && (!('summary' in data) || (data.summary is string && data.summary.size() <= 500))
+        && data.processedAt is timestamp;
+    }
+
+    function isValidStopSale(data, propertyId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'propertyId', 'stopSaleId', 'dateFrom', 'dateTo', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'stopSaleId', 'pmsRoomTypeRef',
+          'roomTypeId', 'dateFrom', 'dateTo', 'otas', 'reason', 'status', 'createdAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.stopSaleId is string && data.stopSaleId.size() >= 1 && data.stopSaleId.size() <= 128
+        && (!('pmsRoomTypeRef' in data) || data.pmsRoomTypeRef == null || (data.pmsRoomTypeRef is string && data.pmsRoomTypeRef.size() <= 100))
+        && (!('roomTypeId' in data) || data.roomTypeId == null || (data.roomTypeId is string && data.roomTypeId.size() <= 128))
+        && data.dateFrom is string && data.dateFrom.size() == 10
+        && data.dateTo is string && data.dateTo.size() == 10
+        && (!('otas' in data) || (data.otas is string && data.otas.size() <= 200))
+        && (!('reason' in data) || (data.reason is string && data.reason.size() <= 250))
+        && data.status in ['active', 'reopened']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSyncLog(data, propertyId) {
+      return data.keys().hasAll(['id', 'ownerUid', 'propertyId', 'level', 'kind', 'message', 'createdAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'propertyId', 'level', 'kind', 'message',
+          'requestId', 'batchId', 'bookingId', 'createdAt'
+        ])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && data.propertyId == propertyId
+        && data.level in ['info', 'warning', 'error']
+        && data.kind is string && data.kind.size() >= 1 && data.kind.size() <= 64
+        && data.message is string && data.message.size() >= 1 && data.message.size() <= 500
+        && (!('requestId' in data) || data.requestId == null || (data.requestId is string && data.requestId.size() <= 128))
+        && (!('batchId' in data) || data.batchId == null || (data.batchId is string && data.batchId.size() <= 128))
+        && (!('bookingId' in data) || data.bookingId == null || (data.bookingId is string && data.bookingId.size() <= 128))
+        && data.createdAt is timestamp;
+    }
+
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName']);
+      allow delete: if false;
+    }
+
+    match /properties/{propertyId} {
+      allow get: if isValidId(propertyId) && isOwner(existing().ownerUid);
+      allow list: if isSignedIn() && existing().ownerUid == request.auth.uid;
+      allow create: if isValidId(propertyId)
+        && isSignedIn()
+        && isValidProperty(incoming())
+        && incoming().propertyId == propertyId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(propertyId)
+        && isOwner(existing().ownerUid)
+        && isValidProperty(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().propertyId == existing().propertyId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'code', 'environment', 'baseUrl', 'webhookUrl',
+          'status', 'ariSource', 'rateSource', 'currency', 'timezone',
+          'hasCredentials', 'activeChannels', 'updatedAt'
+        ]);
+      allow delete: if false;
+
+      match /secrets/{secretId} {
+        allow get: if isValidId(propertyId) && isValidId(secretId) && isOwner(existing().ownerUid);
+        allow create: if isValidId(propertyId)
+          && isValidId(secretId)
+          && isValidSecret(incoming())
+          && isPropertyOwner(propertyId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(secretId)
+          && isOwner(existing().ownerUid)
+          && isValidSecret(incoming())
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'encryptedApiKey', 'encryptedWebhookSecret', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+
+      match /mappings/{mappingId} {
+        allow get: if isValidId(propertyId) && isValidId(mappingId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(mappingId)
+          && isValidMapping(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(mappingId)
+          && isOwner(existing().ownerUid)
+          && isValidMapping(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().propertyId == existing().propertyId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'pmsRoomTypeRef', 'pmsRatePlanRef', 'roomTypeId', 'ratePlanId',
+            'roomTypeName', 'ratePlanName', 'sellMode', 'rateMode', 'countOfRooms', 'updatedAt'
+          ]);
+        allow delete: if isValidId(propertyId) && isValidId(mappingId) && isOwner(existing().ownerUid);
+      }
+
+      match /inventory/{inventoryId} {
+        allow get: if isValidId(propertyId) && isValidId(inventoryId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(inventoryId)
+          && isValidInventoryDay(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(inventoryId)
+          && isOwner(existing().ownerUid)
+          && isValidInventoryDay(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().propertyId == existing().propertyId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'totalRooms', 'bookedRooms', 'freeRooms', 'rate',
+            'minStayArrival', 'maxStay', 'closedToArrival', 'closedToDeparture',
+            'stopSell', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+
+      match /outbox/{batchId} {
+        allow get: if isValidId(propertyId) && isValidId(batchId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(batchId)
+          && isValidOutbox(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(batchId)
+          && isOwner(existing().ownerUid)
+          && isValidOutbox(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().propertyId == existing().propertyId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'httpStatus', 'batchId', 'acceptedItems', 'attempts',
+            'nextRetryAt', 'lastError', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+
+      match /bookings/{bookingId} {
+        allow get: if isValidId(propertyId) && isValidId(bookingId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(bookingId)
+          && isValidBooking(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(bookingId)
+          && isOwner(existing().ownerUid)
+          && isValidBooking(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().propertyId == existing().propertyId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'revisionId', 'revisionSeq', 'status', 'arrivalDate', 'departureDate',
+            'guestName', 'guestEmail', 'amount', 'pmsRoomTypeRef', 'pmsRatePlanRef',
+            'isUnmapped', 'ackResult', 'ackFailureReason', 'pmsBookingId',
+            'pmsBookingNo', 'ackedAt', 'notes', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+
+      match /webhookEvents/{eventId} {
+        allow get: if isValidId(propertyId) && isValidId(eventId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(eventId)
+          && isValidWebhookEvent(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().processedAt == request.time;
+        allow update, delete: if false;
+      }
+
+      match /stopSales/{stopSaleId} {
+        allow get: if isValidId(propertyId) && isValidId(stopSaleId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(stopSaleId)
+          && isValidStopSale(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().createdAt == request.time;
+        allow update: if isValidId(propertyId)
+          && isValidId(stopSaleId)
+          && isOwner(existing().ownerUid)
+          && isValidStopSale(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().propertyId == existing().propertyId
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+        allow delete: if false;
+      }
+
+      match /syncLogs/{logId} {
+        allow get: if isValidId(propertyId) && isValidId(logId) && isOwner(existing().ownerUid);
+        allow list: if isValidId(propertyId) && isSignedIn() && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(propertyId)
+          && isValidId(logId)
+          && isValidSyncLog(incoming(), propertyId)
+          && isPropertyOwner(propertyId)
+          && incoming().createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

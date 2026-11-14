@@ -1,0 +1,6 @@
+{
+  "name": "M-Channel PMS Sync Service",
+  "description": "Node.js channel manager sync service and operations console implementing the M-Channel PMS Integration API v1.3.0 with encrypted credential storage, ARI outbox retries, HMAC-SHA256 webhook verification, booking acks, and PostgreSQL DDL schema.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

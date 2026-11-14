@@ -1,0 +1,15 @@
+[Unit]
+Description=M-Channel PMS Node.js & PostgreSQL Sync Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/mchannel-vps-postgres-sync
+ExecStart=/usr/bin/node /opt/mchannel-vps-postgres-sync/dist/index.js
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/mchannel-vps-postgres-sync/.env
+
+[Install]
+WantedBy=multi-user.target

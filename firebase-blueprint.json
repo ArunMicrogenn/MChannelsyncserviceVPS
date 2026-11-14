@@ -1,0 +1,626 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated operator account profile",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 320
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Paired M-Channel hotel configuration without secret credentials",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "pmsHotelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["staging", "production", "simulator"]
+        },
+        "baseUrl": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "webhookUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "syncing", "live", "paused"]
+        },
+        "ariSource": {
+          "type": "string",
+          "enum": ["pms", "mchannel"]
+        },
+        "rateSource": {
+          "type": "string",
+          "enum": ["pms", "mchannel"]
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "timezone": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "hasCredentials": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "propertyId",
+        "pmsHotelId",
+        "name",
+        "environment",
+        "baseUrl",
+        "status",
+        "ariSource",
+        "rateSource",
+        "currency",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PropertySecret": {
+      "title": "PropertySecret",
+      "description": "Server-only AES-256-GCM encrypted M-Channel API key and webhook secret",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "encryptedApiKey": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "encryptedWebhookSecret": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "encryptedApiKey", "encryptedWebhookSecret", "updatedAt"]
+    },
+    "Mapping": {
+      "title": "Mapping",
+      "description": "Room type and rate plan mapping between PMS codes and M-Channel UUIDs",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "pmsRoomTypeRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "pmsRatePlanRef": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "roomTypeId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "ratePlanId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "roomTypeName": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "ratePlanName": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "sellMode": {
+          "type": "string",
+          "enum": ["per_room", "per_person"]
+        },
+        "rateMode": {
+          "type": "string",
+          "enum": ["manual", "derived", "cascade", "auto"]
+        },
+        "countOfRooms": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "propertyId", "pmsRoomTypeRef", "roomTypeId", "updatedAt"]
+    },
+    "InventoryDay": {
+      "title": "InventoryDay",
+      "description": "Local PMS daily room availability, rates, and restrictions",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "pmsRoomTypeRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "roomTypeId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "maxLength": 10
+        },
+        "totalRooms": {
+          "type": "integer"
+        },
+        "bookedRooms": {
+          "type": "integer"
+        },
+        "freeRooms": {
+          "type": "integer"
+        },
+        "rate": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "minStayArrival": {
+          "type": "integer"
+        },
+        "stopSell": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "propertyId",
+        "pmsRoomTypeRef",
+        "date",
+        "totalRooms",
+        "bookedRooms",
+        "freeRooms",
+        "updatedAt"
+      ]
+    },
+    "AriOutboxBatch": {
+      "title": "AriOutboxBatch",
+      "description": "Idempotent ARI push batch record with retry tracking",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100
+        },
+        "syncType": {
+          "type": "string",
+          "enum": ["delta", "full"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["queued", "accepted", "retry_scheduled", "refused"]
+        },
+        "httpStatus": {
+          "type": "integer"
+        },
+        "batchId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "acceptedItems": {
+          "type": "integer"
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "lastError": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "propertyId",
+        "idempotencyKey",
+        "syncType",
+        "status",
+        "attempts",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "OTA booking imported via webhook or pull fallback with revision and ack tracking",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookingId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revisionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revisionSeq": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "modified", "cancelled"]
+        },
+        "otaCode": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "otaName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "otaReservationCode": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "arrivalDate": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "departureDate": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "guestName": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "amount": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 3
+        },
+        "isUnmapped": {
+          "type": "boolean"
+        },
+        "ackResult": {
+          "type": "string",
+          "enum": ["pending", "imported", "updated", "cancelled", "failed"]
+        },
+        "ackFailureReason": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "pmsBookingId": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "pmsBookingNo": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "propertyId",
+        "bookingId",
+        "revisionId",
+        "revisionSeq",
+        "status",
+        "arrivalDate",
+        "departureDate",
+        "ackResult",
+        "updatedAt"
+      ]
+    },
+    "WebhookEvent": {
+      "title": "WebhookEvent",
+      "description": "Deduplicated inbound webhook event log",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "eventType": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "signatureValid": {
+          "type": "boolean"
+        },
+        "httpStatus": {
+          "type": "integer"
+        },
+        "processedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "propertyId",
+        "eventId",
+        "eventType",
+        "signatureValid",
+        "httpStatus",
+        "processedAt"
+      ]
+    },
+    "StopSale": {
+      "title": "StopSale",
+      "description": "Stop-sale window applied across OTAs or targeted channels",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stopSaleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "pmsRoomTypeRef": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "dateFrom": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "dateTo": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "otas": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "reopened"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "propertyId", "stopSaleId", "dateFrom", "dateTo", "status", "createdAt"]
+    },
+    "SyncLog": {
+      "title": "SyncLog",
+      "description": "Operational diagnostic log entry for pushes, webhooks, and alerts",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["info", "warning", "error"]
+        },
+        "kind": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "propertyId", "level", "kind", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Operator profile indexed by Firebase UID"
+    },
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Paired M-Channel property records owned by a user"
+    },
+    "/properties/{propertyId}/secrets/{secretId}": {
+      "schema": { "$ref": "#/entities/PropertySecret" },
+      "description": "Server-only encrypted API keys and webhook secrets"
+    },
+    "/properties/{propertyId}/mappings/{mappingId}": {
+      "schema": { "$ref": "#/entities/Mapping" },
+      "description": "PMS-to-M-Channel room type and rate plan mappings"
+    },
+    "/properties/{propertyId}/inventory/{inventoryId}": {
+      "schema": { "$ref": "#/entities/InventoryDay" },
+      "description": "Daily PMS availability, rate, and restriction state"
+    },
+    "/properties/{propertyId}/outbox/{batchId}": {
+      "schema": { "$ref": "#/entities/AriOutboxBatch" },
+      "description": "ARI outbox queue and retry batches"
+    },
+    "/properties/{propertyId}/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Imported OTA bookings and acknowledgement outcomes"
+    },
+    "/properties/{propertyId}/webhookEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/WebhookEvent" },
+      "description": "Processed webhook event IDs for deduplication"
+    },
+    "/properties/{propertyId}/stopSales/{stopSaleId}": {
+      "schema": { "$ref": "#/entities/StopSale" },
+      "description": "Active and reopened stop-sale blocks"
+    },
+    "/properties/{propertyId}/syncLogs/{logId}": {
+      "schema": { "$ref": "#/entities/SyncLog" },
+      "description": "Diagnostic audit trail per property"
+    }
+  }
+}
